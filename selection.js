@@ -1,14 +1,9 @@
 
 let tolerance;
 let C;
-let contiguous;
-let originPix;
 let selectionCols;
-let colourSelect;
 let pxLayer;
-let pxBounds;
 let currentPxEdge;
-let groupSelect;
 let img1;
 let selected;
 let hoverLayer;
@@ -107,10 +102,7 @@ class img {
 	newSelection(mX,mY) {
 		if (mX>this.x && mX<this.x+this.w && mY>this.y && mY<this.y+this.h && this.selectNum<=8){
 			let index = (mX-this.x)+(mY-this.y)*this.w;
-// 			print(C);
-// 				print(str(4*index) + '  ' + str(this.modImgs[this.history].pixels.length) + '  ' + str(this.IMG.pixels.length))
 			if (this.px[index]===0){
-				
 				if (!selected || selected===this.selectNum){
 					this.layers.push(createImage(this.w,this.h));
 					this.layers[this.selectNum].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
@@ -120,8 +112,6 @@ class img {
 			
 				this.modImgs[this.history].loadPixels();
 				
-				
-				
 				C = [
 					this.modImgs[this.history].pixels[4*(index)],
 					this.modImgs[this.history].pixels[4*(index)+1],
@@ -129,14 +119,7 @@ class img {
 					this.modImgs[this.history].pixels[4*(index)+3]];
 				
 				this.modImgs[this.history].updatePixels();
-/*
-				print('a' + str(this.modImgs[this.history].pixels[4*(index)]));
-				this.modImgs[this.history].pixels[4*(index)] = 255;
-				print('b' + str(this.modImgs[this.history].pixels[4*(index)]));
-				this.modImgs[this.history].pixels[4*(index)+1] = 0;
-				this.modImgs[this.history].pixels[4*(index)+2] = 0;
-*/
-							
+	
 				this.depthForGraphic = 1;
 				this.px[index]=1;
 				this.currentPxEdge = [[index]];
@@ -177,21 +160,6 @@ class img {
 				}
 				this.layers[selected].updatePixels();
 				this.layers[0].updatePixels();
-/*
-				if (!keyIsDown(16)){
-					if (selected){
-						selected = this.selectNum;
-					}
-					this.selectNum += 1;
-				} else {
-/*
-					if (!groupSelect){
-						this.selectNum += 1;
-					}
-
-					groupSelect = true;
-				}
-*/
 			}
 		}
 	}
@@ -268,15 +236,13 @@ function setup() {
 	H = window.innerHeight;
 	canvas = createCanvas(W, H);
 	tolerance = 20; // 0 is MIN, 255 is MAX
-	contiguous = true;
 	C = [0,0,0];
-	groupSelect = false;
 	selected = 0;
 	
 	colourSelect = true;
 	selectionCols = [[245, 66, 66],[252, 123, 3],[245, 224, 66],[130, 224, 130],[66, 135, 245],[133, 130, 224]];
 	
-	img1 = new img(tom,int(W/10),int(H/10),int(W/2));
+	img1 = new img(tom,int(W/10),int(H/10),int(7*W/12));
 	background(25);	
 	img1.drawMod();
 // 	img1.drawOriginal();
@@ -327,10 +293,6 @@ function selections(){
 	}
 }
 function draw(){
-	if (groupSelect && !keyIsDown(16)){
-		img1.selectNum += 1;
-		groupSelect = false;
-	}
 	updateScreen();
 }
 
