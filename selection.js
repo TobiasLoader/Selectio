@@ -10,13 +10,23 @@ let pxBounds;
 let currentPxEdge;
 let img1;
 
+let tom;
+function preload() {
+  tom = loadImage('Tom.jpg');
+}
 
 class img {
-	constructor (x,y,w,h){
+	constructor (IMG,x,y,w,h){
+		this.IMG = IMG;
+		this.modImg = IMG;
 		this.x = x;
 		this.y = y;
 		this.w = w;
-		this.h = h;
+		if (!h){
+			this.h = this.w*IMG.height/IMG.width
+		} else {
+			this.h = h;
+		}
 		this.selectNum = 0;
 		this.depthForGraphic;
 		this.maxDepthForGraphic;
@@ -27,6 +37,7 @@ class img {
 		for (var i=0; i<this.w*this.h; i+=1){this.pxLayer.push(0);}
 	}
 	
+/*
 	create() {
 		let col;
 		let strokeweight;
@@ -46,6 +57,10 @@ class img {
 		line(this.x,this.y,this.x,this.y+this.h);
 		line(this.x+this.w,this.y,this.x+this.w,this.y+this.h);
 	}
+*/
+	draw() {
+		image(this.modImg,this.x,this.y,this.w,this.h);
+	}
 	
 	newPixSelect(pix){
 		this.px[pix] = this.depthForGraphic+1;
@@ -54,16 +69,6 @@ class img {
 	}
 	
 	testPass(pix,c) {
-/*
-		pixels[4*(this.x + this.y*this.w + (pix%this.w) + int(pix/this.w)*W)] = 0;
-		pixels[4*(this.x + this.y*this.w + (pix%this.w) + int(pix/this.w)*W)+1] = 0;
-		pixels[4*(this.x + this.y*this.w + (pix%this.w) + int(pix/this.w)*W)+2] = 255;
-*/
-	
-/*
-		print(4*(this.x + this.y*this.w + (pix%this.w) + int(pix/this.w)*W))
-		print(mouseX + W*mouseY);
-*/
 		return abs(pixels[4*(this.x + this.y*W + (pix%this.w) + int(pix/this.w)*W)]-c[0])+
 			   abs(pixels[4*(this.x + this.y*W + (pix%this.w) + int(pix/this.w)*W)+1]-c[1])+
 			   abs(pixels[4*(this.x + this.y*W + (pix%this.w) + int(pix/this.w)*W)+2]-c[2])<=3*tolerance;
@@ -121,31 +126,32 @@ function setup() {
 	W = window.innerWidth;
 	H = window.innerHeight;
 	canvas = createCanvas(W, H);
-	tolerance = 0; // 0 is MIN, 255 is MAX
+	tolerance = 40; // 0 is MIN, 255 is MAX
 	contiguous = true;
 	C = [0,0,0];
 	
 	colourSelect = true;
 	selectionCols = [[245, 66, 66],[252, 123, 3],[245, 224, 66],[130, 224, 130],[66, 135, 245],[133, 130, 224]];
 	
-	
-	background(255);
-// 	img1 = new img(int(W/2),int(H/2),int(W/3),int(H/3));
-	img1 = new img(int(W/10),int(H/10),int(2*W/5),int(4*H/5));
-	img1.create();
-	loadPixels();
-/*
-	
-	for (var pix=0; pix<100; pix+=1){
-		print(str((pix%W) + int(pix/W)*W)+' vs '+str(pix))
-	}
-*/
+	img1 = new img(tom,int(W/10),int(H/10),int(W/2));
+	background(25);	
+	img1.draw();
 }
 
+function selections(){
+	fill(255);
+	for (var i=0; i<img1.selectNum; i+=1){
+		text(i,W-100,20+20*i);
+	}
+}
+/*
 
-
-
-
+function draw(){
+	background(25);	
+	img1.draw();
+	selections();
+}
+*/
 
 
 function mouseClicked(){
