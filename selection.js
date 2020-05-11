@@ -39,7 +39,9 @@ class img {
 		this.modImgs = [];
 		this.modImgs.push(createImage(this.w,this.h));
 		this.modImgs[0].copy(this.IMG, 0, 0, this.w, this.h, 0, 0, this.w, this.h);
-// 		this.layers = 
+		this.layers = [];
+		this.layers.push(createImage(this.w,this.h));
+		this.layers[0].copy(this.IMG, 0, 0, this.w, this.h, 0, 0, this.w, this.h);
 		this.selectNum = 1;
 		this.depthForGraphic;
 		this.maxDepthForGraphic;
@@ -78,10 +80,18 @@ class img {
 	drawOriginal(){
 		image(this.IMG,this.x,this.y,this.w,this.h);
 	}
+		
+	drawLayer(layer) {
+		if (layer < this.selectNum){
+			image(this.layers[layer],this.x,this.y,this.w,this.h);
+		} else {
+			this.drawMod();
+		}
+	}
 	
 	newPixSelect(pix){
 		this.px[pix] = this.depthForGraphic+1;
-		this.pxLayer[pix] = this.selectNum;
+		this.pxLayer[pix] = selected;
 		this.currentPxEdge[this.depthForGraphic].push(pix);
 	}
 	
@@ -92,7 +102,15 @@ class img {
 	}
 
 	newSelection(mX,mY) {
-		if (mX>this.x && mX<this.x+this.w && mY>this.y && mY<this.y+this.h && this.selectNum<=10){
+		if (mX>this.x && mX<this.x+this.w && mY>this.y && mY<this.y+this.h && this.selectNum<=8){
+			
+			if (!selected || selected===this.selectNum){
+				this.layers.push(createImage(this.w,this.h));
+				this.layers[this.selectNum].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+				this.selectNum += 1;
+				selected = this.selectNum-1;
+			}
+		
 			this.modImgs[this.history].loadPixels();
 			
 			let index = (mX-this.x)+(mY-this.y)*this.w;
@@ -103,6 +121,7 @@ class img {
 				this.modImgs[this.history].pixels[4*(index)+2],
 				this.modImgs[this.history].pixels[4*(index)+3]];
 			
+			this.modImgs[this.history].updatePixels();
 // 			print(C);
 // 				print(str(4*index) + '  ' + str(this.modImgs[this.history].pixels.length) + '  ' + str(this.IMG.pixels.length))
 			if (this.px[index]===0){
@@ -119,12 +138,12 @@ class img {
 				this.depthForGraphic = 1;
 				this.px[index]=1;
 				this.currentPxEdge = [[index]];
-				this.pxLayer[index] = this.selectNum;
+				this.pxLayer[index] = selected;
 				while (this.currentPxEdge[this.depthForGraphic-1].length) {
 					this.currentPxEdge.push([]);
 					for (var i=0; i<this.currentPxEdge[this.depthForGraphic-1].length; i+=1){
 						var pix = this.currentPxEdge[this.depthForGraphic-1][i];
-						if (this.px[pix]===this.depthForGraphic && this.pxLayer[pix]===this.selectNum){
+						if (this.px[pix]===this.depthForGraphic && this.pxLayer[pix]===selected){
 							if (this.px[pix-1]===0 && this.testPass(pix-1,C) && int(pix/this.w)===int((pix-1)/this.w)){this.newPixSelect(pix-1);}
 							if (this.px[pix-1*this.w]===0 && this.testPass(pix-1*this.w,C)){this.newPixSelect(pix-1*this.w);}
 							if (this.px[pix+1]===0 && this.testPass(pix+1,C) && int(pix/this.w)===int((pix+1)/this.w)){this.newPixSelect(pix+1);}
@@ -136,42 +155,92 @@ class img {
 				if (!this.maxDepthForGraphic || this.depthForGraphic>this.maxDepthForGraphic){
 					this.maxDepthForGraphic=this.depthForGraphic;
 				}
+				
+				this.layers[0].loadPixels();
+				this.layers[selected].loadPixels();
 				if (colourSelect){
 					for (var pix=0; pix<this.px.length; pix+=1){
-						if (this.px[pix] && this.pxLayer[pix]===this.selectNum){
-							this.modImgs[this.history].pixels[4*(pix)] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][0];
-							this.modImgs[this.history].pixels[4*(pix)+1] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][1];
-							this.modImgs[this.history].pixels[4*(pix)+2] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][2];
-							this.modImgs[this.history].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
+						if (this.px[pix] && this.pxLayer[pix]===selected){
+							this.layers[selected].pixels[4*(pix)] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][0];
+							this.layers[selected].pixels[4*(pix)+1] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][1];
+							this.layers[selected].pixels[4*(pix)+2] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][2];
+							this.layers[selected].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
+							
+							this.layers[0].pixels[4*(pix)] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][0];
+							this.layers[0].pixels[4*(pix)+1] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][1];
+							this.layers[0].pixels[4*(pix)+2] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][2];
+							this.layers[0].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
 						}
 					}
 				}
-				this.modImgs[this.history].updatePixels();
+				this.layers[selected].updatePixels();
+				this.layers[0].updatePixels();
+/*
 				if (!keyIsDown(16)){
+					if (selected){
+						selected = this.selectNum;
+					}
 					this.selectNum += 1;
 				} else {
 /*
 					if (!groupSelect){
 						this.selectNum += 1;
 					}
-*/
+
 					groupSelect = true;
 				}
+*/
 			}
 		}
 	}
 	
 	selectToCol(col,select){
 		this.modImgs[this.history].loadPixels();
+		for (var layer=0; layer<this.selectNum; layer+=1){
+			this.layers[layer].loadPixels();
+		}
 		for (var pix=0; pix<this.px.length; pix+=1){
 			if (this.pxLayer[pix]===select){
 				this.modImgs[this.history].pixels[4*(pix)] = col[0];
 				this.modImgs[this.history].pixels[4*(pix)+1] = col[1];
 				this.modImgs[this.history].pixels[4*(pix)+2] = col[2];
 				this.modImgs[this.history].pixels[4*(pix)+3] = 255;
+				for (var layer=1; layer<this.selectNum; layer+=1){
+					if (layer !== select){
+						this.layers[layer].pixels[4*(pix)] = col[0];
+						this.layers[layer].pixels[4*(pix)+1] = col[1];
+						this.layers[layer].pixels[4*(pix)+2] = col[2];
+						this.layers[layer].pixels[4*(pix)+3] = 255;
+					}
+				}
 			}
 		}
 		this.modImgs[this.history].updatePixels();
+		for (var layer=0; layer<this.selectNum; layer+=1){
+			this.layers[layer].updatePixels();
+		}
+		selected = this.selectNum;
+	}
+	
+	clearLayer(layer){
+		this.layers[layer].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+		for (var pix=0; pix<this.px.length; pix+=1){
+			if (this.pxLayer[pix]===layer){
+				this.pxLayer[pix] = 0;
+				this.px[pix] = 0;
+			}
+		}
+		this.layers[0].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+		this.layers[0].loadPixels();
+		for (var pix=0; pix<this.px.length; pix+=1){
+			if (this.pxLayer[pix]) {
+				this.layers[0].pixels[4*(pix)] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][0];
+				this.layers[0].pixels[4*(pix)+1] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][1];
+				this.layers[0].pixels[4*(pix)+2] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][2];
+				this.layers[0].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
+			}
+		}
+		this.layers[0].updatePixels();
 	}
 }
 
@@ -199,25 +268,43 @@ function selections(){
 	strokeWeight(1);
 	textFont('Lato Light');
 	textAlign(RIGHT);
-	for (var i=0; i<img1.selectNum; i+=1){
+	for (var i=0; i<img1.selectNum+1; i+=1){
 		if (i===selected){
 			fill(255,255,255,180);
 		} else {
 			fill(255,255,255,100);
 		}
-		if (mouseX<W-40 && mouseX>W-60-textWidth('Background    ' + str(i)) && mouseY>40+50*(i) && mouseY<20+50*(i+1)){
+		if (mouseX<W-40 && mouseX>W-60-textWidth('All Selected    ' + str(i)) && mouseY>40+50*(i) && mouseY<20+50*(i+1)){
 			hoverLayer = i;
 			cursor('pointer');
 		}
 		noStroke();
 		if (!i){
-			text('Background    ' + str(i),W-50,60+50*i);
-		} else {
+			text('All Selected    ' + str(i),W-50,60+50*i);
+			stroke(255,255,255,50);
+			noFill();
+			ellipse(W-155,55+50*i,6,6);
+		} else if (i<img1.selectNum) {
 			text('Select Layer   ' + str(i),W-50,60+50*i);
 			stroke(255,255,255,50);
 			line(W-70,30+50*i,W-50,30+50*i);
+			fill(selectionCols[(i-1)%selectionCols.length][0],selectionCols[(i-1)%selectionCols.length][1],selectionCols[(i-1)%selectionCols.length][2],150);
+			noStroke();
+			
+			ellipse(W-155,55+50*i,6,6);
+		} else if (i===img1.selectNum){
+			text('Edited Image',W-50,60+50*i);
+			stroke(255,255,255,50);
+			line(W-70,30+50*i,W-50,30+50*i);
 		}
-		
+	}
+	
+	stroke(255,255,255,150);
+	line(W-70,H-60,W-50,H-60);
+	line(W-60,H-70,W-60,H-50);
+	
+	if (mouseX<W-50 && mouseX>W-70 && mouseY>H-70 && mouseY<H-50){
+		cursor('pointer');	
 	}
 }
 function draw(){
@@ -232,7 +319,7 @@ function updateScreen(){
 	hoverLayer = -1;
 	cursor('default');
 	background(25);	
-	img1.drawMod();
+	img1.drawLayer(selected);
 // 	img1.drawOriginal();
 	selections();
 }
@@ -243,18 +330,16 @@ function mouseClicked(){
 	if (hoverLayer>=0){
 		selected = hoverLayer;
 	}
-// 	updateScreen();
-/*
-	if (keyIsPressed){
-		print('hey');
-		img1.drawOriginal();
+	if (mouseX<W-50 && mouseX>W-70 && mouseY>H-70 && mouseY<H-50 && img1.selectNum<=9){
+		img1.layers.push(createImage(img1.w,img1.h));
+		img1.layers[img1.selectNum].copy(img1.modImgs[img1.history], 0, 0, img1.w, img1.h, 0, 0, img1.w, img1.h);
+		img1.selectNum += 1;
+		selected = img1.selectNum-1;
 	}
-*/
 }
 
 function mouseDragged(){
 	img1.newSelection(mouseX,mouseY);
-// 	updateScreen();
 }
 
 function keyTyped() {
@@ -263,6 +348,9 @@ function keyTyped() {
   }
   if (keyIsDown(66)) {
   	img1.selectToCol([0,0,0],selected);
+  }
+  if (keyIsDown(32) && selected>0 && selected<=img1.selectNum) {
+  	img1.clearLayer(selected);
   }
 }
 
