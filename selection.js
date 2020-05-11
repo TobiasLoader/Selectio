@@ -8,7 +8,10 @@ let colourSelect;
 let pxLayer;
 let pxBounds;
 let currentPxEdge;
+let groupSelect;
 let img1;
+let selected;
+let hoverLayer;
 
 let tom;
 function preload() {
@@ -36,16 +39,8 @@ class img {
 		this.modImgs = [];
 		this.modImgs.push(createImage(this.w,this.h));
 		this.modImgs[0].copy(this.IMG, 0, 0, this.w, this.h, 0, 0, this.w, this.h);
-/*
-		this.modImgs = createImage(this.w,this.h);
-		this.IMG.loadPixels();
-		this.modImgs.loadPixels();
-		this.modImgs.pixels = this.IMG.pixels;
-		this.modImgs.updatePixels();
-		this.modImgs.loadPixels();
-		print(this.modImgs);
-*/
-		this.selectNum = 0;
+// 		this.layers = 
+		this.selectNum = 1;
 		this.depthForGraphic;
 		this.maxDepthForGraphic;
 		this.currentPxEdge;
@@ -97,7 +92,7 @@ class img {
 	}
 
 	newSelection(mX,mY) {
-		if (mX>this.x && mX<this.x+this.w && mY>this.y && mY<this.y+this.h){
+		if (mX>this.x && mX<this.x+this.w && mY>this.y && mY<this.y+this.h && this.selectNum<=10){
 			this.modImgs[this.history].loadPixels();
 			
 			let index = (mX-this.x)+(mY-this.y)*this.w;
@@ -143,18 +138,40 @@ class img {
 				}
 				if (colourSelect){
 					for (var pix=0; pix<this.px.length; pix+=1){
-						if (this.px[pix]){
-							this.modImgs[this.history].pixels[4*(pix)] = selectionCols[this.pxLayer[pix]%selectionCols.length][0];
-							this.modImgs[this.history].pixels[4*(pix)+1] = selectionCols[this.pxLayer[pix]%selectionCols.length][1];
-							this.modImgs[this.history].pixels[4*(pix)+2] = selectionCols[this.pxLayer[pix]%selectionCols.length][2];
+						if (this.px[pix] && this.pxLayer[pix]===this.selectNum){
+							this.modImgs[this.history].pixels[4*(pix)] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][0];
+							this.modImgs[this.history].pixels[4*(pix)+1] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][1];
+							this.modImgs[this.history].pixels[4*(pix)+2] = selectionCols[(this.pxLayer[pix]-1)%selectionCols.length][2];
 							this.modImgs[this.history].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
 						}
 					}
 				}
 				this.modImgs[this.history].updatePixels();
-				this.selectNum += 1;
+				if (!keyIsDown(16)){
+					this.selectNum += 1;
+				} else {
+/*
+					if (!groupSelect){
+						this.selectNum += 1;
+					}
+*/
+					groupSelect = true;
+				}
 			}
 		}
+	}
+	
+	selectToCol(col,select){
+		this.modImgs[this.history].loadPixels();
+		for (var pix=0; pix<this.px.length; pix+=1){
+			if (this.pxLayer[pix]===select){
+				this.modImgs[this.history].pixels[4*(pix)] = col[0];
+				this.modImgs[this.history].pixels[4*(pix)+1] = col[1];
+				this.modImgs[this.history].pixels[4*(pix)+2] = col[2];
+				this.modImgs[this.history].pixels[4*(pix)+3] = 255;
+			}
+		}
+		this.modImgs[this.history].updatePixels();
 	}
 }
 
@@ -165,6 +182,8 @@ function setup() {
 	tolerance = 20; // 0 is MIN, 255 is MAX
 	contiguous = true;
 	C = [0,0,0];
+	groupSelect = false;
+	selected = 0;
 	
 	colourSelect = true;
 	selectionCols = [[245, 66, 66],[252, 123, 3],[245, 224, 66],[130, 224, 130],[66, 135, 245],[133, 130, 224]];
@@ -176,13 +195,42 @@ function setup() {
 }
 
 function selections(){
-	fill(255);
+	textSize(14);
+	strokeWeight(1);
+	textFont('Lato Light');
+	textAlign(RIGHT);
 	for (var i=0; i<img1.selectNum; i+=1){
-		text(i,W-100,20+20*i);
+		if (i===selected){
+			fill(255,255,255,180);
+		} else {
+			fill(255,255,255,100);
+		}
+		if (mouseX<W-40 && mouseX>W-60-textWidth('Background    ' + str(i)) && mouseY>40+50*(i) && mouseY<20+50*(i+1)){
+			hoverLayer = i;
+			cursor('pointer');
+		}
+		noStroke();
+		if (!i){
+			text('Background    ' + str(i),W-50,60+50*i);
+		} else {
+			text('Select Layer   ' + str(i),W-50,60+50*i);
+			stroke(255,255,255,50);
+			line(W-70,30+50*i,W-50,30+50*i);
+		}
+		
 	}
+}
+function draw(){
+	if (groupSelect && !keyIsDown(16)){
+		img1.selectNum += 1;
+		groupSelect = false;
+	}
+	updateScreen();
 }
 
 function updateScreen(){
+	hoverLayer = -1;
+	cursor('default');
 	background(25);	
 	img1.drawMod();
 // 	img1.drawOriginal();
@@ -192,7 +240,10 @@ function updateScreen(){
 
 function mouseClicked(){
 	img1.newSelection(mouseX,mouseY);
-	updateScreen();
+	if (hoverLayer>=0){
+		selected = hoverLayer;
+	}
+// 	updateScreen();
 /*
 	if (keyIsPressed){
 		print('hey');
@@ -203,12 +254,15 @@ function mouseClicked(){
 
 function mouseDragged(){
 	img1.newSelection(mouseX,mouseY);
-	updateScreen();
+// 	updateScreen();
 }
 
 function keyTyped() {
-  if (key === 's') {
+  if (keyIsDown(83)) {
     img1.modImgs[img1.history].save('tom_new', 'png');
+  }
+  if (keyIsDown(66)) {
+  	img1.selectToCol([0,0,0],selected);
   }
 }
 
