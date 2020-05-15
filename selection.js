@@ -10,10 +10,14 @@ let selected;
 let activeSelection;
 let hoverLayer;
 let tool;
+let tools;
+let toolHover;
 let circleSelectSize;
 let circleDeselectSize;
 let cursorType;
 let activity;
+let colHSB;
+let fillCol;
 
 let tom;
 function preload() {
@@ -21,6 +25,7 @@ function preload() {
 }
 
 function setup() {
+	angleMode(DEGREES);
 	W = window.innerWidth;
 	H = window.innerHeight;
 	canvas = createCanvas(W, H);
@@ -30,15 +35,27 @@ function setup() {
 	C = [0,0,0];
 	selected = 0;
 	activeSelection = 0;
-	tool = 'magic wand';
+	tool = 'Magic Wand';
+	tools = ['Magic Wand', 'Circle Select', 'Circle Deselect', 'Colour Fill'];
 	
-	selectionCols = [[245, 66, 66],[252, 123, 3],[245, 224, 66],[130, 224, 130],[78, 163, 242],[133, 130, 224]];
-	selectionHue = [0,29,53,120,209,255];
+	selectionCols = [[245, 66, 66],[252, 123, 3],[245, 224, 66],[208, 240, 161],[130, 224, 130],[130, 224, 205],[78, 163, 242],[133, 130, 224],[222, 140, 186]];
+	selectionHue = [];
+	for (var col=0; col<selectionCols.length; col+=1){selectionHue.push(RGB2HSB(selectionCols[col]));}
 	
-	img1 = new img(tom,int(W/10),int(H/10),int(7*W/12));
+	fillCol = [255,0,0];
+	
+	img1 = initImg(tom,W/10,H/10,2*W/3,3*H/5);
+	
 	background(25);	
 	img1.drawMod();
-// 	img1.drawOriginal();
+}
+
+function initImg(IMG,x,y,maxW,maxH){
+	if (maxW*IMG.height/IMG.width>maxH){
+		return new img(IMG,int(x),int(y),int(IMG.width*(maxH/IMG.height)),int(maxH));
+	} else {
+		return new img(IMG,int(x),int(y),int(maxW));
+	}
 }
 
 function HSB2RGB(col){
@@ -55,6 +72,85 @@ function HSB2RGB(col){
 	if (H>=60 && H<180){g = C;} else if (H>=240){g = 0;} else {g = X;}
 	if (H>=180 && H<300){b = C;} else if (H<120){b = 0;} else {b = X;}
 	return [255*(r+m),255*(g+m),255*(b+m)];
+}
+
+function RGB2HSB(col){
+	let R = col[0]/255;
+	let G = col[1]/255;
+	let B = col[2]/255;
+	let Cmax = max(R,G,B);
+	let Cmin = min(R,G,B);
+	let D = Cmax - Cmin;
+	let h;
+	let s;
+	let b;
+	if (!D){h = 0;} else if (Cmax===R){h = 60*(((G-B)/D)%6);} else if (Cmax===G){h = 60*(((B-R)/D)+2);} else if (Cmax===B){h = 60*(((R-G)/D)+4);}
+	if (!Cmax){s=0;} else {s = D/Cmax;}
+	b = Cmax;
+	return [h,s,b];
+}
+
+function toolCursors(){
+	cursorType = 'none';
+	if (tool === 'Magic Wand'){
+		stroke(255,255,255,100);
+		strokeWeight(1);
+		fill(0,0,0);
+		rect(mouseX-3,mouseY+3,4,15);
+		rect(mouseX-5,mouseY-2,3,3);
+		rect(mouseX-2,mouseY-5,3,3);
+		rect(mouseX+1,mouseY-1,3,3);
+	} else if (tool === 'Circle Select'){
+		noFill();
+		stroke(255,255,255,150);
+		strokeWeight(1);
+		ellipse(mouseX,mouseY,2*circleSelectSize,2*circleSelectSize);
+		line(mouseX-circleSelectSize/5,mouseY,mouseX+circleSelectSize/5,mouseY);
+		line(mouseX,mouseY-circleSelectSize/5,mouseX,mouseY+circleSelectSize/5);
+		stroke(0,0,0,150);
+		ellipse(mouseX,mouseY,2*circleSelectSize+2,2*circleSelectSize+2);
+		line(mouseX-circleSelectSize/5,mouseY-1,mouseX+circleSelectSize/5,mouseY-1);
+		line(mouseX-1,mouseY-circleSelectSize/5,mouseX-1,mouseY+circleSelectSize/5);
+	} else if (tool === 'Circle Deselect'){
+		noFill();
+		stroke(255,255,255,150);
+		strokeWeight(1);
+		ellipse(mouseX,mouseY,2*circleDeselectSize,2*circleDeselectSize);
+		line(mouseX-circleDeselectSize/5,mouseY,mouseX+circleDeselectSize/5,mouseY);
+		stroke(0,0,0,150);
+		ellipse(mouseX,mouseY,2*circleDeselectSize+2,2*circleDeselectSize+2);
+		line(mouseX-circleDeselectSize/5,mouseY-1,mouseX+circleDeselectSize/5,mouseY-1);
+	}  else if (tool === 'Colour Fill'){
+		strokeWeight(1);
+		push();
+		translate(mouseX-10,mouseY+13);
+		rotate(15);
+		noStroke();
+		fill(fillCol[0],fillCol[1],fillCol[2]);
+		rect(-10,-3,20,14);
+		triangle(-10,-3,10,-3,10,-6);
+		stroke(200,200,200);
+		arc(0,11,20,8,0,180);
+		noFill();
+		line(-10,-13,-10,11);
+		line(10,-13,10,11);
+		ellipse(0,-13,20,5);
+		stroke(20,20,20);
+		arc(0,12,22,8,10,170);
+		line(-11,-13,-11,12);
+		line(11,-13,11,13);
+		ellipse(0,-13,22,6);
+		pop();
+		push();
+		noFill();
+		translate(mouseX-10,mouseY);
+		rotate(-30);
+		stroke(200,200,200);
+		arc(2,2,5,35,160,355);
+		stroke(20,20,20);
+		arc(2,2,7,39,160,355);
+		pop();
+	}
 }
 
 class img {
@@ -114,6 +210,7 @@ class img {
 		line(this.x+this.w,this.y,this.x+this.w,this.y+this.h);
 	}
 */
+
 	buildTransparencyGrid(){
 		this.transparentBack.noStroke();
 		let nY = 15;
@@ -167,20 +264,38 @@ class img {
 	}
 	
 	updateLayer(layer){
+		this.modImgs[this.history].loadPixels();
+/*
+		print('history:' + this.history);
+		print('modImgs R:' + this.modImgs[this.history].pixels[0]);
+		print('modImgs G:' + this.modImgs[this.history].pixels[1]);
+		print('modImgs B:' + this.modImgs[this.history].pixels[2]);
+		print('modImgs A:' + this.modImgs[this.history].pixels[3]);
+*/
+		
+		this.layers[layer] = createImage(this.w,this.h);
 		this.layers[layer].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
 		this.layers[layer].loadPixels();
-			for (var pix=0; pix<this.px.length; pix+=1){
-				if (this.px[pix] && (!layer || this.pxLayer[pix]===layer)){
-					this.colourPix(this.layers[layer],pix,HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)]));
-	/*
-					this.layers[layer].pixels[4*(pix)] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[0];
-					this.layers[layer].pixels[4*(pix)+1] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[1];
-					this.layers[layer].pixels[4*(pix)+2] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[2];
-	// 				this.layers[activeSelection].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
-	*/
+		
+		for (var pix=0; pix<this.px.length; pix+=1){
+			if (this.px[pix] && (!layer || this.pxLayer[pix]===layer)){
+				colHSB = selectionHue[(this.pxLayer[pix]-1)%selectionHue.length];
+				if (this.px[pix]===1){
+					this.colourPix(this.layers[layer],pix,HSB2RGB([colHSB[0],3*(colHSB[1])/4,colHSB[2]]));
+				} else {
+					this.colourPix(this.layers[layer],pix,HSB2RGB([colHSB[0],3*(colHSB[1])/4,(colHSB[2])*(1-this.px[pix]/this.maxDepthForGraphic)]));
 				}
 			}
+		}
 		this.layers[layer].updatePixels();
+/*
+		print('layer:' + layer);
+		print('layers R:' + this.layers[layer].pixels[0]);
+		print('layers G:' + this.layers[layer].pixels[1]);
+		print('layers B:' + this.layers[layer].pixels[2]);
+		print('layers A:' + this.layers[layer].pixels[3]);
+		print('\n')
+*/
 	}
 	
 	newPixSelect(pix){
@@ -205,37 +320,15 @@ class img {
 	
 	imageRun(){
 		if (this.imageHover()){
-			cursorType = 'none';
-			if (tool === 'magic wand'){
-				stroke(255,255,255,100);
-				strokeWeight(1);
-				fill(0,0,0);
-				rect(mouseX-3,mouseY+3,4,15);
-				rect(mouseX-5,mouseY-2,3,3);
-				rect(mouseX-2,mouseY-5,3,3);
-				rect(mouseX+1,mouseY-1,3,3);
-			} else if (tool === 'circle select'){
-				noFill();
-				stroke(255,255,255,150);
-				strokeWeight(1);
-				ellipse(mouseX,mouseY,2*circleSelectSize,2*circleSelectSize);
-				line(mouseX-circleSelectSize/5,mouseY,mouseX+circleSelectSize/5,mouseY);
-				line(mouseX,mouseY-circleSelectSize/5,mouseX,mouseY+circleSelectSize/5);
-			} else if (tool === 'circle deselect'){
-				noFill();
-				stroke(255,255,255,150);
-				strokeWeight(1);
-				ellipse(mouseX,mouseY,2*circleDeselectSize,2*circleDeselectSize);
-				line(mouseX-circleDeselectSize/5,mouseY,mouseX+circleDeselectSize/5,mouseY);
-			}
+			toolCursors();
 		}
 	}
 
 	newMagicWand(mX,mY) {
-		if (this.imageHover() && this.selectNum<=8){
+		if (this.imageHover()){
 			let index = (mX-this.x)+(mY-this.y)*this.w;
 			if (this.px[index]===0){
-				if (this.selectNum===1 || selected===this.selectNum){
+				if (this.selectNum===1 || selected===this.selectNum && this.selectNum<=8){
 					this.layers.push(createImage(this.w,this.h));
 					this.layers[this.selectNum].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
 					this.selectNum += 1;
@@ -301,26 +394,19 @@ class img {
 						}
 					}
 				}
-				this.layers[selected].loadPixels();
-				for (var pix=0; pix<this.px.length; pix+=1){
-					if (this.px[pix] && this.pxLayer[pix]===activeSelection){
-// 						this.colourPix(this.layers[selected],pix,selectionHue[(this.pxLayer[pix]-1)%selectionCols.length]);
-						this.colourPix(this.layers[selected],pix,HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)]));
-/*
-						this.layers[activeSelection].pixels[4*(pix)] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[0];
-						this.layers[activeSelection].pixels[4*(pix)+1] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[1];
-						this.layers[activeSelection].pixels[4*(pix)+2] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[2];
-// 						this.layers[activeSelection].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
-*/
-					}
-				}
-				this.layers[selected].updatePixels();
+				this.updateLayer(selected);
 			}
 		}
 	}
 	
 	newCircleSelect(mX,mY) {
-		if (this.imageHover() && this.selectNum<=8){
+		if (this.imageHover()){
+			if (this.selectNum===1 || selected===this.selectNum && this.selectNum<=8){
+				this.layers.push(createImage(this.w,this.h));
+				this.layers[this.selectNum].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+				this.selectNum += 1;
+				activeSelection = this.selectNum-1;
+			}
 			let index = (mX-this.x)+(mY-this.y)*this.w;
 			let anySelect = false;
 			let dSquare;
@@ -340,19 +426,7 @@ class img {
 				activeSelection = this.selectNum-1;
 			}
 			
-			this.layers[selected].loadPixels();
-			for (var pix=0; pix<this.px.length; pix+=1){
-				if (this.px[pix] && this.pxLayer[pix]===activeSelection){
-					this.colourPix(this.layers[selected],pix,HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)]));
-/*
-					this.layers[activeSelection].pixels[4*(pix)] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[0];
-					this.layers[activeSelection].pixels[4*(pix)+1] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[1];
-					this.layers[activeSelection].pixels[4*(pix)+2] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[2];
-// 					this.layers[activeSelection].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
-*/
-				}
-			}
-			this.layers[selected].updatePixels();
+			this.updateLayer(selected);
 		}
 	}
 	
@@ -386,39 +460,12 @@ class img {
 			this.modImgs[this.history].copy(this.modImgs[this.history-1], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
 		}
 		this.modImgs[this.history].loadPixels();
-/*
-		for (var layer=0; layer<this.selectNum; layer+=1){
-			this.layers[layer].loadPixels();
-		}
-*/
 		for (var pix=0; pix<this.px.length; pix+=1){
 			if (this.pxLayer[pix]===select){
-				this.colourPix(this.modImgs[this.history],pix,[col[0],col[1],col[2],col[3]]);
-/*
-				this.modImgs[this.history].pixels[4*(pix)] = col[0];
-				this.modImgs[this.history].pixels[4*(pix)+1] = col[1];
-				this.modImgs[this.history].pixels[4*(pix)+2] = col[2];
-				this.modImgs[this.history].pixels[4*(pix)+3] = col[3];
-*/
-/*
-				for (var layer=1; layer<this.selectNum; layer+=1){
-					if (layer !== select){
-						this.colourPix(this.layers[layer],pix,[col[0],col[1],col[2]],col[3]);
-						this.layers[layer].pixels[4*(pix)] = col[0];
-						this.layers[layer].pixels[4*(pix)+1] = col[1];
-						this.layers[layer].pixels[4*(pix)+2] = col[2];
-						this.layers[layer].pixels[4*(pix)+3] = col[3];
-					}
-				}
-*/
+				this.colourPix(this.modImgs[this.history],pix,col);
 			}
 		}
 		this.modImgs[this.history].updatePixels();
-/*
-		for (var layer=0; layer<this.selectNum; layer+=1){
-			this.layers[layer].updatePixels();
-		}
-*/
 		selected = this.selectNum;
 	}
 	
@@ -430,31 +477,19 @@ class img {
 				this.px[pix] = 0;
 			}
 		}
-// 		this.layers[0].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
-// 		this.layers[0].loadPixels();
-/*
-		for (var pix=0; pix<this.px.length; pix+=1){
-			if (this.pxLayer[pix]) {
-				this.colourPix(this.layers[0],pix,HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)]));
-				this.layers[0].pixels[4*(pix)] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[0];
-				this.layers[0].pixels[4*(pix)+1] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[1];
-				this.layers[0].pixels[4*(pix)+2] = HSB2RGB([selectionHue[(this.pxLayer[pix]-1)%selectionHue.length],0.6,0.8*(1-this.px[pix]/this.maxDepthForGraphic)])[2];
-// 				this.layers[0].pixels[4*(pix)+3] = 255-255*(this.px[pix]/this.maxDepthForGraphic);
-			}
-		}
-*/
-// 		this.layers[0].updatePixels();
 	}
 	
 	undo(){
 		if (this.history){
 			this.history -= 1;
+			this.updateLayer(selected);
 		}
 	}
 	
 	redo(){
 		if (this.history<this.modImgs.length-1){
 			this.history += 1;
+			this.updateLayer(selected);
 		}
 	}
 }
@@ -518,51 +553,54 @@ function selections(){
 
 function toolBar(){
 	textSize(14);
-	noStroke();
 	textFont('Lato-Light');
 	textAlign(CENTER,CENTER);
-	if (tool==='magic wand'){
-		fill(255,255,255,180);
-	} else  {
-		fill(255,255,255,100);
-	}
-	text('Magic Wand',15*W/80,8*H/10);
-	if (tool==='circle select'){
-		fill(255,255,255,180);
-	} else {
-		fill(255,255,255,100);
-	}
-	text('Circle Select',25*W/80,8*H/10);
-	if (tool==='circle deselect'){
-		fill(255,255,255,180);
-	} else {
-		fill(255,255,255,100);
-	}
-	text('Circle Deselect',35*W/80,8*H/10);
 	stroke(255,255,255,50);
 	line(5*W/40,8*H/10-10,5*W/40,8*H/10+10);
-	line(10*W/40,8*H/10-10,10*W/40,8*H/10+10);
-	line(15*W/40,8*H/10-10,15*W/40,8*H/10+10);
-	line(20*W/40,8*H/10-10,20*W/40,8*H/10+10);
+	toolHover = 0;
+	for (var t=0; t<tools.length; t+=1){
+		if (tool===tools[t]){
+			fill(255,255,255,180);
+		} else  {
+			fill(255,255,255,100);
+		}
+		noStroke();
+		text(tools[t],(15+10*t)*W/80,8*H/10);
+		stroke(255,255,255,50);
+		line((20+10*t)*W/80,8*H/10-10,(20+10*t)*W/80,8*H/10+10);
+		if (mouseX>(10+10*t)*W/80 && mouseX<(20+10*t)*W/80 && mouseY>8*H/10-10 && mouseY<8*H/10+10){
+			cursorType = 'pointer';
+			toolHover = tools[t];
+		}
+	}
 	
-	if (tool==='magic wand'){
+	if (tool==='Magic Wand'){
 		text('Tolerance:  ' + str(tolerance),15*W/80,17*H/20)
-	} else if (tool==='circle select'){
+	} else if (tool==='Circle Select'){
 		fill(255,255,255,100);
 		textSize(12);
 		text('Circle Select Size:  ' + str(circleSelectSize),25*W/80,17*H/20)
-	} else if (tool==='circle deselect'){
+	} else if (tool==='Circle Deselect'){
 		fill(255,255,255,100);
 		textSize(12);
 		text('Circle Deselect Size:  ' + str(circleDeselectSize),35*W/80,17*H/20)
-	}
-	
-	if (mouseX>5*W/40 && mouseX<10*W/40 && mouseY>8*H/10-10 && mouseY<8*H/10+10){
-		cursorType = 'pointer';
-	} else if (mouseX>10*W/40 && mouseX<15*W/40 && mouseY>8*H/10-10 && mouseY<8*H/10+10){
-		cursorType = 'pointer';
-	} else if (mouseX>15*W/40 && mouseX<20*W/40 && mouseY>8*H/10-10 && mouseY<8*H/10+10){
-		cursorType = 'pointer';
+	} else if (tool==='Colour Fill'){
+		fill(255,255,255,100);
+		textSize(12);
+		if (fillCol.length>3 && fillCol[3]!==255){
+			text('RGBA:  ' + str(fillCol[0]) +', '+ str(fillCol[1]) +', '+ str(fillCol[2]) +', '+ str(fillCol[3]),45*W/80,17*H/20)
+		} else {
+			text('RGB:  ' + str(fillCol[0]) +', '+ str(fillCol[1]) +', '+ str(fillCol[2]),45*W/80,17*H/20)
+		}
+		noFill();
+		stroke(255,255,255,50);
+		rect(45*W/80-8,17*H/20+20-3,15,15);
+		noStroke();
+		fill(fillCol[0],fillCol[1],fillCol[2]);
+		rect(45*W/80-5,17*H/20+20,10,10);
+		if (mouseX>45*W/80-8 && mouseX<45*W/80+7 && mouseY>17*H/20+20-3 && mouseY<17*H/20+20+12){
+			cursorType = 'pointer';
+		}
 	}
 }
 
@@ -594,15 +632,25 @@ function mouseMoved(){
 function mouseClicked(){
 	activity = true;
 	
-	if (tool==='magic wand'){
+	if (tool==='Magic Wand'){
 		img1.newMagicWand(mouseX,mouseY);
-	} else if (tool==='circle select'){
+	} else if (tool==='Circle Select'){
 		img1.newCircleSelect(mouseX,mouseY);
-	} else if (tool==='circle deselect'){
+	} else if (tool==='Circle Deselect'){
 		img1.newCircleDeselect(mouseX,mouseY);
+	}  else if (tool==='Colour Fill'){
+		if (img1.imageHover()){
+			img1.selectToCol(fillCol,selected);
+		} else if (mouseX>45*W/80-8 && mouseX<45*W/80+7 && mouseY>17*H/20+20-3 && mouseY<17*H/20+20+12){
+			fillCol = [int(prompt('Red (0-255):')),int(prompt('Green (0-255):')),int(prompt('Blue (0-255):')),int(prompt('Alpha (0-255):'))];
+			for (var i=0; i<4; i+=1){
+				if (!fillCol[i] && fillCol[i]!==0){
+					fillCol[i] = 255;
+				}
+			}
+		}
 	}
 
-	
 	if (hoverLayer>=0){
 		selected = hoverLayer;
 		if (hoverLayer>0){
@@ -610,6 +658,7 @@ function mouseClicked(){
 		}
 		if (hoverLayer<img1.selectNum){
 			img1.updateLayer(selected);
+			img1.updateLayer(activeSelection);
 		}
 	}
 	if (dist(mouseX,mouseY,W-60,H-60)<20 && img1.selectNum<=9){
@@ -619,23 +668,19 @@ function mouseClicked(){
 		selected = img1.selectNum-1;
 		activeSelection = img1.selectNum-1;
 	}
-	if (mouseX>5*W/40 && mouseX<10*W/40 && mouseY>8*H/10-10 && mouseY<8*H/10+10){
-		tool = 'magic wand';
-	} else if (mouseX>10*W/40 && mouseX<15*W/40 && mouseY>8*H/10-10 && mouseY<8*H/10+10){
-		tool = 'circle select';
-	} else if (mouseX>15*W/40 && mouseX<20*W/40 && mouseY>8*H/10-10 && mouseY<8*H/10+10){
-		tool = 'circle deselect';
+	if (toolHover){
+		tool = toolHover;
 	}
 }
 
 function mouseDragged(){
 	activity = true;
 
-	if (tool==='magic wand'){
+	if (tool==='Magic Wand'){
 		img1.newMagicWand(mouseX,mouseY);
-	} else if (tool==='circle select'){
+	} else if (tool==='Circle Select'){
 		img1.newCircleSelect(mouseX,mouseY);
-	} else if (tool==='circle deselect'){
+	} else if (tool==='Circle Deselect'){
 		img1.newCircleDeselect(mouseX,mouseY);
 	}
 }
@@ -643,17 +688,17 @@ function mouseDragged(){
 function mouseWheel(event) {
 	activity = true;
 	
-	if (tool==='magic wand' && (tolerance>0 || event.delta>0)){
+	if (tool==='Magic Wand' && (tolerance>0 || event.delta>0)){
 		tolerance += int(event.delta/20);
 		if (tolerance<0){
 			tolerance = 0;
 		}
-	} else if (tool==='circle select' && (circleSelectSize>0 || event.delta>0)){
+	} else if (tool==='Circle Select' && (circleSelectSize>0 || event.delta>0)){
 		circleSelectSize += int(event.delta/20);
 		if (circleSelectSize<0){
 			circleSelectSize = 0;
 		}
-	} else if (tool==='circle deselect' && (circleDeselectSize>0 || event.delta>0)){
+	} else if (tool==='Circle Deselect' && (circleDeselectSize>0 || event.delta>0)){
 		circleDeselectSize += int(event.delta/20);
 		if (circleDeselectSize<0){
 			circleDeselectSize = 0;
@@ -687,20 +732,20 @@ function keyTyped() {
   }
   
   if (keyIsDown(187)) {
-	if (tool==='magic wand'){
+	if (tool==='Magic Wand'){
 		tolerance += 1;
-	} else if (tool==='circle select'){
+	} else if (tool==='Circle Select'){
 		circleSelectSize += 1;
-	} else if (tool==='circle deselect'){
+	} else if (tool==='Circle Deselect'){
 		circleDeselectSize += 1;
 	}
   }
   if (keyIsDown(189)) {
-	if (tool==='magic wand' && tolerance>0){
+	if (tool==='Magic Wand' && tolerance>0){
 		tolerance -= 1;
-	} else if (tool==='circle select' && circleSelectSize>0){
+	} else if (tool==='Circle Select' && circleSelectSize>0){
 		circleSelectSize -= 1;
-	} else if (tool==='circle deselect' && circleDeselectSize>0){
+	} else if (tool==='Circle Deselect' && circleDeselectSize>0){
 		circleDeselectSize -= 1;
 	}
   }
