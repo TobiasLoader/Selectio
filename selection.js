@@ -18,6 +18,11 @@ let cursorType;
 let activity;
 let colHSB;
 let fillCol;
+let sidebarTopRHS;
+let sidebarWidthRHS;
+let sidebarWordWidthRHS;
+let sidebarWordSeperationRHS;
+
 
 let tom;
 function preload() {
@@ -48,6 +53,7 @@ function setup() {
 	
 	background(25);	
 	img1.drawMod();
+	activity = true;
 }
 
 function initImg(IMG,x,y,maxW,maxH){
@@ -126,7 +132,7 @@ function toolCursors(){
 		translate(mouseX-10,mouseY+13);
 		rotate(15);
 		noStroke();
-		fill(fillCol[0],fillCol[1],fillCol[2]);
+		fill(fillCol[0],fillCol[1],fillCol[2],fillCol[3]);
 		rect(-10,-3,20,14);
 		triangle(-10,-3,10,-3,10,-6);
 		stroke(200,200,200);
@@ -177,7 +183,7 @@ class img {
 		this.layers = [];
 		this.layers.push(createImage(this.w,this.h));
 		this.layers[0].copy(this.IMG, 0, 0, this.w, this.h, 0, 0, this.w, this.h);
-		this.selectNum = 1;
+		this.selectNum = 2;
 		this.depthForGraphic;
 		this.maxDepthForGraphic=1;
 		this.currentPxEdge;
@@ -245,10 +251,31 @@ class img {
 	}
 		
 	drawLayer(layer) {
-		if (layer < this.selectNum){
+		if (layer < this.selectNum-1){
 			image(this.layers[layer],this.x,this.y,this.w,this.h);
+			strokeWeight(1);
+			if (layer){
+				stroke(selectionCols[layer-1][0],selectionCols[layer-1][1],selectionCols[layer-1][2],100);
+			} else if (activeSelection){
+				stroke(selectionCols[activeSelection-1][0],selectionCols[activeSelection-1][1],selectionCols[activeSelection-1][2],100);
+			} else {
+				stroke(255,255,255,100);
+			}
+			line(this.x-2,this.y-2,this.x+this.w+2,this.y-2);
+			line(this.x+this.w+2,this.y-2,this.x+this.w+2,this.y+this.h+2);
+			line(this.x+this.w+2,this.y+this.h+2,this.x-2,this.y+this.h+2);
+			line(this.x-2,this.y+this.h+2,this.x-2,this.y-2);
 		} else {
-			this.drawMod();
+			if (layer === this.selectNum-1){
+				this.drawMod();
+			} else {
+				this.drawOriginal();
+			}
+			stroke(255,255,255,100);
+			line(this.x-2,this.y-2,this.x+this.w+2,this.y-2);
+			line(this.x+this.w+2,this.y-2,this.x+this.w+2,this.y+this.h+2);
+			line(this.x+this.w+2,this.y+this.h+2,this.x-2,this.y+this.h+2);
+			line(this.x-2,this.y+this.h+2,this.x-2,this.y-2);
 		}
 	}
 	
@@ -328,11 +355,12 @@ class img {
 		if (this.imageHover()){
 			let index = (mX-this.x)+(mY-this.y)*this.w;
 			if (this.px[index]===0){
-				if (this.selectNum===1 || selected===this.selectNum && this.selectNum<=8){
+				if ((this.selectNum===2 || selected>this.selectNum-2) && this.selectNum<=9){
 					this.layers.push(createImage(this.w,this.h));
-					this.layers[this.selectNum].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+					this.layers[this.selectNum-1].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+					if (selected===this.selectNum){selected -= 1;}
 					this.selectNum += 1;
-					activeSelection = this.selectNum-1;
+					activeSelection = this.selectNum-2;
 				}
 			
 				this.modImgs[this.history].loadPixels();
@@ -401,32 +429,30 @@ class img {
 	
 	newCircleSelect(mX,mY) {
 		if (this.imageHover()){
-			if (this.selectNum===1 || selected===this.selectNum && this.selectNum<=8){
+			if ((this.selectNum===2 || selected>this.selectNum-2) && this.selectNum<=9){
 				this.layers.push(createImage(this.w,this.h));
-				this.layers[this.selectNum].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+				this.layers[this.selectNum-1].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+				if (selected===this.selectNum){selected -= 1;}
 				this.selectNum += 1;
-				activeSelection = this.selectNum-1;
+				activeSelection = this.selectNum-2;
 			}
 			let index = (mX-this.x)+(mY-this.y)*this.w;
 			let anySelect = false;
 			let dSquare;
+			this.layers[selected].loadPixels();
+			
+			colHSB = selectionHue[(activeSelection-1)%selectionHue.length];
+			let colRGBSelect = HSB2RGB([colHSB[0],3*(colHSB[1])/4,colHSB[2]]);
 			for (var pix=index-circleSelectSize*this.w; pix<index+circleSelectSize*this.w; pix+=1){
 				dSquare = Math.pow(pix%this.w - index%this.w,2) + Math.pow(int(pix/this.w)-int(index/this.w),2);
 				if (!this.pxLayer[pix] && dSquare <= circleSelectSize*circleSelectSize){
 					this.pxLayer[pix]=activeSelection;
 					this.px[pix] = 1;
 					anySelect = true;
+					this.colourPix(this.layers[selected],pix,colRGBSelect);
 				}
 			}
-			
-			if (anySelect && (activeSelection===this.selectNum)){
-				this.layers.push(createImage(this.w,this.h));
-				this.layers[this.selectNum].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
-				this.selectNum += 1;
-				activeSelection = this.selectNum-1;
-			}
-			
-			this.updateLayer(selected);
+			this.layers[selected].updatePixels();
 		}
 	}
 	
@@ -466,7 +492,7 @@ class img {
 			}
 		}
 		this.modImgs[this.history].updatePixels();
-		selected = this.selectNum;
+		selected = this.selectNum-1;
 	}
 	
 	clearLayer(layer){
@@ -496,57 +522,125 @@ class img {
 
 
 function selections(){
-	textSize(14);
+	noStroke();
+	fill(23);
+	sidebarWidthRHS = 220;
+	if (H<800){
+		sidebarTopRHS = H/8;
+		sidebarWordSeperationRHS = H/20;
+	} else {
+		sidebarTopRHS = 100;
+		sidebarWordSeperationRHS = 40;
+	}
+	rect(W-sidebarWidthRHS,0,sidebarWidthRHS,H);
 	textFont('Lato Light');
-	textAlign(RIGHT,BASELINE);
 	strokeWeight(1);
+	fill(255,255,255,180);
+	textSize(0.18*sidebarTopRHS);
+	textAlign(CENTER,BASELINE);
+	text('Selection Map',W-sidebarWidthRHS/2,sidebarTopRHS);
+	sidebarWordWidthRHS = W-sidebarWidthRHS/2 + textWidth('Selection Map')/2;
+	textAlign(RIGHT,CENTER);
+	stroke(255,255,255,50);
+	line(sidebarWordWidthRHS,sidebarTopRHS+7,W-sidebarWidthRHS+(W-sidebarWordWidthRHS),sidebarTopRHS+7);
+	textSize(0.4*sidebarWordSeperationRHS);
+	for (var i=0; i<img1.selectNum+1; i+=1){
+		if (!i){
+			if (mouseX<sidebarWordWidthRHS && mouseX>W-sidebarWidthRHS+(W-sidebarWordWidthRHS) && mouseY>2* sidebarTopRHS+sidebarWordSeperationRHS*(i-1)-sidebarWordSeperationRHS/5 && mouseY<2* sidebarTopRHS+sidebarWordSeperationRHS*(i)-sidebarWordSeperationRHS/5){
+				hoverLayer = 0;
+				cursorType = 'pointer';
+			}
+		} else if (i<img1.selectNum-1) {
+			if (mouseX<sidebarWordWidthRHS && mouseX>W-sidebarWidthRHS+(W-sidebarWordWidthRHS) && mouseY>2* sidebarTopRHS+sidebarWordSeperationRHS*(i-1)+sidebarWordSeperationRHS/5 && mouseY<2* sidebarTopRHS+sidebarWordSeperationRHS*(i)-sidebarWordSeperationRHS/5){
+				hoverLayer = i;
+				cursorType = 'pointer';
+			}
+		} else if (i===img1.selectNum-1){
+			if (mouseX<W && mouseX>W-sidebarWidthRHS && mouseY>H-2*sidebarTopRHS && mouseY<H-1.5*sidebarTopRHS){//+sidebarWordSeperationRHS/5
+				hoverLayer = i;
+				cursorType = 'pointer';
+			}
+		} else if (i===img1.selectNum){
+			if (mouseX<W && mouseX>W-sidebarWidthRHS && mouseY>H-1.5*sidebarTopRHS && mouseY<H-1*sidebarTopRHS){//+sidebarWordSeperationRHS/5
+				hoverLayer = i;
+				cursorType = 'pointer';
+			}
+		}
+	}
 	for (var i=0; i<img1.selectNum+1; i+=1){
 		if (i===selected){
-			fill(255,255,255,180);
+			fill(255,255,255,220);
 		} else {
-			fill(255,255,255,100);
+			if (i===hoverLayer){
+				fill(255,255,255,190);
+			} else {
+				fill(255,255,255,130);
+			}
 		}
-		if (mouseX<W-40 && mouseX>W-60-textWidth('Background    ' + str(i)) && mouseY>40+50*(i) && mouseY<20+50*(i+1)){
-			hoverLayer = i;
-			cursorType = 'pointer';
-		}
+		
 		noStroke();
 		if (!i){
 			noStroke();
-			text('Background    ' + str(i),W-50,60+50*i);
-			stroke(255,255,255,50);
+			text('Area    ' + str(i),sidebarWordWidthRHS,2* sidebarTopRHS-20-sidebarWordSeperationRHS/2+sidebarWordSeperationRHS*i);
+			fill(255,255,255,140);
+			textSize(0.3*sidebarWordSeperationRHS-1);
+			text('[ Unselected ]',sidebarWordWidthRHS,2* sidebarTopRHS-sidebarWordSeperationRHS/2+sidebarWordSeperationRHS*i);
+			textSize(0.4*sidebarWordSeperationRHS);
+			stroke(255,255,255,140);
 			noFill();
-			ellipse(W-155,55+50*i,6,6);
+			ellipse(W-0.65*sidebarWidthRHS,2* sidebarTopRHS-sidebarWordSeperationRHS/2+sidebarWordSeperationRHS*i-10,10,10);
 			if (activeSelection){
-				fill(selectionCols[(activeSelection-1)%selectionCols.length][0],selectionCols[(activeSelection-1)%selectionCols.length][1],selectionCols[(activeSelection-1)%selectionCols.length][2],100);
+				if (activeSelection===img1.selectNum && img1.selectNum>1){
+					fill(selectionCols[(activeSelection-2)%selectionCols.length][0],selectionCols[(activeSelection-2)%selectionCols.length][1],selectionCols[(activeSelection-2)%selectionCols.length][2],100);
+				} else {
+					fill(selectionCols[(activeSelection-1)%selectionCols.length][0],selectionCols[(activeSelection-1)%selectionCols.length][1],selectionCols[(activeSelection-1)%selectionCols.length][2],100);
+				}
 				noStroke();
-				ellipse(W-170,55+50*i,6,6);
+				ellipse(W-0.75*sidebarWidthRHS,2*sidebarTopRHS-sidebarWordSeperationRHS/2+sidebarWordSeperationRHS*i-10,10,10);
 			}
-		} else if (i<img1.selectNum) {
+		} else if (i<img1.selectNum-1) {
 			noStroke();
-			text('Select Layer   ' + str(i),W-50,60+50*i);
+			text('Area   ' + str(i),sidebarWordWidthRHS,2*sidebarTopRHS-sidebarWordSeperationRHS/2+sidebarWordSeperationRHS*i);
 			stroke(255,255,255,50);
-			line(W-70,30+50*i,W-50,30+50*i);
+			line(sidebarWordWidthRHS-20,2*sidebarTopRHS+sidebarWordSeperationRHS*(i-1),sidebarWordWidthRHS,2*sidebarTopRHS+sidebarWordSeperationRHS*(i-1));
 			fill(selectionCols[(i-1)%selectionCols.length][0],selectionCols[(i-1)%selectionCols.length][1],selectionCols[(i-1)%selectionCols.length][2],150);
 			noStroke();
-			
-			ellipse(W-155,55+50*i,6,6);
-		} else if (i===img1.selectNum){
+			ellipse(W-0.65*sidebarWidthRHS,2*sidebarTopRHS-sidebarWordSeperationRHS/2+sidebarWordSeperationRHS*i,10,10);
+		} else if (i===img1.selectNum-1){
+			stroke(255,255,255,30);
+			line(W-sidebarWidthRHS,H-2*sidebarTopRHS,W,H-2*sidebarTopRHS);
 			noStroke();
-			text('Edited Image',W-50,60+50*i);
+			textAlign(CENTER,CENTER);
+			text('Edited Image',W-sidebarWidthRHS/2,H-1.75*sidebarTopRHS);
 			stroke(255,255,255,50);
-			line(W-70,30+50*i,W-50,30+50*i);
+		}  else if (i===img1.selectNum){
+			stroke(255,255,255,30);
+			line(W-sidebarWidthRHS,H-1.5*sidebarTopRHS,W,H-1.5*sidebarTopRHS);
+			noStroke();
+			textAlign(CENTER,CENTER);
+			text('Original Image',W-sidebarWidthRHS/2,H-1.25*sidebarTopRHS);
+			stroke(255,255,255,50);
 		}
+
 	}
 	
-	stroke(255,255,255,150);
-	line(W-70,H-60,W-50,H-60);
-	line(W-60,H-70,W-60,H-50);
-	noFill();
-	stroke(255,255,255,75);
-	ellipse(W-60,H-60,40,40);
+	stroke(255,255,255,30);
+	line(W-sidebarWidthRHS,H-1*sidebarTopRHS,W,H-1*sidebarTopRHS);
+	stroke(255,255,255,10);
+	line(W-sidebarWidthRHS,0,W-sidebarWidthRHS,H);
 	
-	if (dist(mouseX,mouseY,W-60,H-60)<20){
+	if (img1.selectNum<=10){
+		stroke(255,255,255,170);
+	} else {
+		stroke(255,255,255,75);
+	}
+	line(W-sidebarWidthRHS/2-8,H-0.5*sidebarTopRHS,W-sidebarWidthRHS/2+8,H-0.5*sidebarTopRHS);
+	line(W-sidebarWidthRHS/2,H-0.5*sidebarTopRHS-8,W-sidebarWidthRHS/2,H-0.5*sidebarTopRHS+8);
+	noFill();
+	stroke(255,255,255,100);
+	ellipse(W-sidebarWidthRHS/2,H-0.5*sidebarTopRHS,40,40);
+	
+	if (dist(mouseX,mouseY,W-sidebarWidthRHS/2,H-0.5*sidebarTopRHS)<20){
 		cursorType = 'pointer';
 	}
 }
@@ -606,6 +700,7 @@ function toolBar(){
 
 function draw(){
 	if (activity){
+		print(selected)
 		cursorType = 'default';
 		updateScreen();
 		img1.imageRun();
@@ -656,17 +751,19 @@ function mouseClicked(){
 		if (hoverLayer>0){
 			activeSelection = hoverLayer;
 		}
-		if (hoverLayer<img1.selectNum){
+		if (hoverLayer<img1.selectNum-1){
 			img1.updateLayer(selected);
-			img1.updateLayer(activeSelection);
+			if (activeSelection!==selected){
+				img1.updateLayer(activeSelection);
+			}
 		}
 	}
-	if (dist(mouseX,mouseY,W-60,H-60)<20 && img1.selectNum<=9){
+	if (dist(mouseX,mouseY,W-sidebarWidthRHS/2,H-60)<20 && img1.selectNum<=10){
 		img1.layers.push(createImage(img1.w,img1.h));
-		img1.layers[img1.selectNum].copy(img1.modImgs[img1.history], 0, 0, img1.w, img1.h, 0, 0, img1.w, img1.h);
+		img1.layers[img1.selectNum-1].copy(img1.modImgs[img1.history], 0, 0, img1.w, img1.h, 0, 0, img1.w, img1.h);
 		img1.selectNum += 1;
-		selected = img1.selectNum-1;
-		activeSelection = img1.selectNum-1;
+		selected = img1.selectNum-2;
+		activeSelection = img1.selectNum-2;
 	}
 	if (toolHover){
 		tool = toolHover;
@@ -721,7 +818,7 @@ function keyTyped() {
   if (keyIsDown(87)) {
   	img1.selectToCol([255,255,255,255],selected);
   }
-  if (keyIsDown(32) && selected>0 && selected<=img1.selectNum) {
+  if (keyIsDown(32) && selected>0 && selected<img1.selectNum-1) {
   	img1.clearLayer(selected);
   }
   if (keyIsDown(85)) {
