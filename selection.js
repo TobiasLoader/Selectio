@@ -41,7 +41,7 @@ function setup() {
 	selected = 0;
 	activeSelection = 0;
 	tool = 'Magic Wand';
-	tools = ['Magic Wand', 'Circle Select', 'Circle Deselect', 'Colour Fill'];
+	tools = ['Magic Wand', 'Circle Select', 'Circle Deselect', 'Colour Fill', 'Revert Area'];
 	
 	selectionCols = [[245, 66, 66],[252, 123, 3],[245, 224, 66],[208, 240, 161],[130, 224, 130],[130, 224, 205],[78, 163, 242],[133, 130, 224],[222, 140, 186]];
 	selectionHue = [];
@@ -256,7 +256,7 @@ class img {
 			strokeWeight(1);
 			if (layer){
 				stroke(selectionCols[layer-1][0],selectionCols[layer-1][1],selectionCols[layer-1][2],100);
-			} else if (activeSelection){
+			} else if (activeSelection && activeSelection< this.selectNum-1){
 				stroke(selectionCols[activeSelection-1][0],selectionCols[activeSelection-1][1],selectionCols[activeSelection-1][2],100);
 			} else {
 				stroke(255,255,255,100);
@@ -700,7 +700,6 @@ function toolBar(){
 
 function draw(){
 	if (activity){
-		print(selected)
 		cursorType = 'default';
 		updateScreen();
 		img1.imageRun();
@@ -748,7 +747,7 @@ function mouseClicked(){
 
 	if (hoverLayer>=0){
 		selected = hoverLayer;
-		if (hoverLayer>0){
+		if (hoverLayer>0 && selected<img1.selectNum-1){
 			activeSelection = hoverLayer;
 		}
 		if (hoverLayer<img1.selectNum-1){
