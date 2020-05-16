@@ -17,12 +17,15 @@ let circleDeselectSize;
 let cursorType;
 let activity;
 let colHSB;
+let colRGB;
 let fillCol;
 let sidebarTopRHS;
 let sidebarWidthRHS;
 let sidebarWordWidthRHS;
 let sidebarWordSeperationRHS;
-
+let colAreaMethod;
+let historyRecord;
+let timeSec;
 
 let tom;
 function preload() {
@@ -42,6 +45,7 @@ function setup() {
 	activeSelection = 0;
 	tool = 'Magic Wand';
 	tools = ['Magic Wand', 'Circle Select', 'Circle Deselect', 'Colour Fill', 'Revert Area'];
+	colAreaMethod = 1; // 1, 2 or 3
 	
 	selectionCols = [[245, 66, 66],[252, 123, 3],[245, 224, 66],[208, 240, 161],[130, 224, 130],[130, 224, 205],[78, 163, 242],[133, 130, 224],[222, 140, 186]];
 	selectionHue = [];
@@ -156,6 +160,37 @@ function toolCursors(){
 		stroke(20,20,20);
 		arc(2,2,7,39,160,355);
 		pop();
+	}   else if (tool === 'Revert Area'){
+		noFill();
+		stroke(200,200,200);
+		arc(mouseX,mouseY,18,18,-90,160);
+		stroke(20,20,20);
+		arc(mouseX,mouseY,20,20,-90,160);
+		fill(200,200,200);
+		triangle(mouseX+1,mouseY-2,mouseX-1,mouseY-15,mouseX-8,mouseY-6);
+	}
+}
+
+function determineAreaStroke(layer){
+	if (colAreaMethod===1){
+		colHSB = selectionHue[(layer-1)%selectionHue.length];
+		timeSec = millis()/1000;
+		if (int(timeSec)%4){
+			colRGB = HSB2RGB([colHSB[0],colHSB[1]*2*abs(0.5-(timeSec-int(timeSec))),colHSB[2]]);
+		} else {
+			colRGB = HSB2RGB([colHSB[0],colHSB[1],colHSB[2]*2*abs(0.5-(timeSec-int(timeSec)))]);
+		}
+	}
+	else if (colAreaMethod===2){
+		if ((int(millis()/1000)%4)%2===0){
+			colRGB = selectionCols[(layer-1)%selectionCols.length];
+		} else if (int(millis()/1000)%4===1){
+			colRGB = [255,255,255];
+		} else if (int(millis()/1000)%4===3){
+			colRGB = [0,0,0];
+		}
+	} else if (colAreaMethod===3){
+		colRGB = selectionCols[(layer-1)%selectionCols.length];
 	}
 }
 
@@ -180,9 +215,7 @@ class img {
 		this.modImgs = [];
 		this.modImgs.push(createImage(this.w,this.h));
 		this.modImgs[0].copy(this.IMG, 0, 0, this.w, this.h, 0, 0, this.w, this.h);
-		this.layers = [];
-		this.layers.push(createImage(this.w,this.h));
-		this.layers[0].copy(this.IMG, 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+		this.layers = [[]];
 		this.selectNum = 2;
 		this.depthForGraphic;
 		this.maxDepthForGraphic=1;
@@ -252,19 +285,31 @@ class img {
 		
 	drawLayer(layer) {
 		if (layer < this.selectNum-1){
-			image(this.layers[layer],this.x,this.y,this.w,this.h);
-			strokeWeight(1);
+// 			image(this.layers[layer],this.x,this.y,this.w,this.h);
+			this.drawMod();
 			if (layer){
+				if (this.layers[layer].length){
+					determineAreaStroke(layer);
+					stroke(colRGB[0],colRGB[1],colRGB[2]);
+					for (var pix=0; pix<this.layers[layer].length; pix+=1){
+						point(this.x+this.layers[layer][pix]%this.w,this.y+int(this.layers[layer][pix]/this.w));
+					}
+				}
 				stroke(selectionCols[layer-1][0],selectionCols[layer-1][1],selectionCols[layer-1][2],100);
-			} else if (activeSelection && activeSelection< this.selectNum-1){
+			} else if (activeSelection && activeSelection<this.selectNum-1){
+				if (this.selectNum>2){
+					for (var l=1; l<this.selectNum-1; l+=1){
+						determineAreaStroke(l);
+						stroke(colRGB[0],colRGB[1],colRGB[2]);
+						for (var pix=0; pix<this.layers[l].length; pix+=1){
+							point(this.x+this.layers[l][pix]%this.w,this.y+int(this.layers[l][pix]/this.w));
+						}
+					}
+				}
 				stroke(selectionCols[activeSelection-1][0],selectionCols[activeSelection-1][1],selectionCols[activeSelection-1][2],100);
 			} else {
 				stroke(255,255,255,100);
 			}
-			line(this.x-2,this.y-2,this.x+this.w+2,this.y-2);
-			line(this.x+this.w+2,this.y-2,this.x+this.w+2,this.y+this.h+2);
-			line(this.x+this.w+2,this.y+this.h+2,this.x-2,this.y+this.h+2);
-			line(this.x-2,this.y+this.h+2,this.x-2,this.y-2);
 		} else {
 			if (layer === this.selectNum-1){
 				this.drawMod();
@@ -272,11 +317,12 @@ class img {
 				this.drawOriginal();
 			}
 			stroke(255,255,255,100);
-			line(this.x-2,this.y-2,this.x+this.w+2,this.y-2);
-			line(this.x+this.w+2,this.y-2,this.x+this.w+2,this.y+this.h+2);
-			line(this.x+this.w+2,this.y+this.h+2,this.x-2,this.y+this.h+2);
-			line(this.x-2,this.y+this.h+2,this.x-2,this.y-2);
 		}
+		strokeWeight(1);
+		line(this.x-4,this.y-4,this.x+this.w+4,this.y-4);
+		line(this.x+this.w+4,this.y-4,this.x+this.w+4,this.y+this.h+4);
+		line(this.x+this.w+4,this.y+this.h+4,this.x-4,this.y+this.h+4);
+		line(this.x-4,this.y+this.h+4,this.x-4,this.y-4);
 	}
 	
 	colourPix(img,pix,c){
@@ -290,7 +336,14 @@ class img {
 		}
 	}
 	
+	modifyImage(){
+		this.modImgs.length = this.history+1;
+	}
+	
 	updateLayer(layer){
+		if (!layer){
+			layer = activeSelection;
+		}
 		this.modImgs[this.history].loadPixels();
 /*
 		print('history:' + this.history);
@@ -300,11 +353,10 @@ class img {
 		print('modImgs A:' + this.modImgs[this.history].pixels[3]);
 */
 		
-		this.layers[layer] = createImage(this.w,this.h);
-		this.layers[layer].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
-		this.layers[layer].loadPixels();
+		this.layers[layer] = [];
 		
-		for (var pix=0; pix<this.px.length; pix+=1){
+		for (var pix=0; pix<this.pxLayer.length; pix+=1){
+/*
 			if (this.px[pix] && (!layer || this.pxLayer[pix]===layer)){
 				colHSB = selectionHue[(this.pxLayer[pix]-1)%selectionHue.length];
 				if (this.px[pix]===1){
@@ -313,8 +365,20 @@ class img {
 					this.colourPix(this.layers[layer],pix,HSB2RGB([colHSB[0],3*(colHSB[1])/4,(colHSB[2])*(1-this.px[pix]/this.maxDepthForGraphic)]));
 				}
 			}
+*/
+			if (this.pxLayer[pix]===layer){
+
+				if (pix%this.w===1){
+					this.layers[layer].push(pix-1);
+				}
+				if (pix%this.w===this.w-2){
+					this.layers[layer].push(pix+1);
+				}
+				if (this.pxLayer[pix-this.w]!==layer || this.pxLayer[pix+this.w]!==layer || this.pxLayer[pix-1]!==layer || this.pxLayer[pix+1]!==layer){
+					this.layers[layer].push(pix);
+				}
+			}
 		}
-		this.layers[layer].updatePixels();
 /*
 		print('layer:' + layer);
 		print('layers R:' + this.layers[layer].pixels[0]);
@@ -356,8 +420,7 @@ class img {
 			let index = (mX-this.x)+(mY-this.y)*this.w;
 			if (this.px[index]===0){
 				if ((this.selectNum===2 || selected>this.selectNum-2) && this.selectNum<=9){
-					this.layers.push(createImage(this.w,this.h));
-					this.layers[this.selectNum-1].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+					this.layers.push([]);
 					if (selected===this.selectNum){selected -= 1;}
 					this.selectNum += 1;
 					activeSelection = this.selectNum-2;
@@ -430,8 +493,7 @@ class img {
 	newCircleSelect(mX,mY) {
 		if (this.imageHover()){
 			if ((this.selectNum===2 || selected>this.selectNum-2) && this.selectNum<=9){
-				this.layers.push(createImage(this.w,this.h));
-				this.layers[this.selectNum-1].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+				this.layers.push([]);
 				if (selected===this.selectNum){selected -= 1;}
 				this.selectNum += 1;
 				activeSelection = this.selectNum-2;
@@ -439,20 +501,32 @@ class img {
 			let index = (mX-this.x)+(mY-this.y)*this.w;
 			let anySelect = false;
 			let dSquare;
-			this.layers[selected].loadPixels();
+// 			this.layers[selected].loadPixels();
 			
 			colHSB = selectionHue[(activeSelection-1)%selectionHue.length];
 			let colRGBSelect = HSB2RGB([colHSB[0],3*(colHSB[1])/4,colHSB[2]]);
+			if (index+circleSelectSize*this.w<this.px.length){
+				let maxPix = index+circleSelectSize*this.w;
+			} else {
+				let maxPix = this.px.length;
+			}
 			for (var pix=index-circleSelectSize*this.w; pix<index+circleSelectSize*this.w; pix+=1){
-				dSquare = Math.pow(pix%this.w - index%this.w,2) + Math.pow(int(pix/this.w)-int(index/this.w),2);
-				if (!this.pxLayer[pix] && dSquare <= circleSelectSize*circleSelectSize){
-					this.pxLayer[pix]=activeSelection;
-					this.px[pix] = 1;
-					anySelect = true;
-					this.colourPix(this.layers[selected],pix,colRGBSelect);
+				if (pix>this.px.length-1){
+					break;	
+				} else{
+					dSquare = Math.pow(pix%this.w - index%this.w,2) + Math.pow(int(pix/this.w)-int(index/this.w),2);
+					if (!this.pxLayer[pix] && dSquare <= circleSelectSize*circleSelectSize){
+						this.pxLayer[pix]=activeSelection;
+						this.px[pix] = 1;
+						anySelect = true;
+	// 					this.colourPix(this.layers[selected],pix,colRGBSelect);
+					}
 				}
 			}
-			this.layers[selected].updatePixels();
+// 			this.layers[selected].updatePixels();
+			if (anySelect){
+				this.updateLayer(selected);
+			}
 		}
 	}
 	
@@ -460,26 +534,32 @@ class img {
 		if (this.imageHover() && this.selectNum>1){
 			let index = (mX-this.x)+(mY-this.y)*this.w;
 			let dSquare;
+			let anySelect = false;
 			
 			this.modImgs[this.history].loadPixels();
-			this.layers[selected].loadPixels();
+// 			this.layers[selected].loadPixels();
 			for (var pix=index-circleDeselectSize*this.w; pix<index+circleDeselectSize*this.w; pix+=1){
 				dSquare = Math.pow(pix%this.w - index%this.w,2) + Math.pow(int(pix/this.w)-int(index/this.w),2);
 				if (this.pxLayer[pix]===activeSelection && dSquare <= circleDeselectSize*circleDeselectSize){
 					this.pxLayer[pix] = 0;
 					this.px[pix] = 0;
+					anySelect = true;
 					
-					this.layers[selected].pixels[4*(pix)] = this.modImgs[this.history].pixels[4*(pix)];
-					this.layers[selected].pixels[4*(pix)+1] = this.modImgs[this.history].pixels[4*(pix)+1];
-					this.layers[selected].pixels[4*(pix)+2] = this.modImgs[this.history].pixels[4*(pix)+2];
-					this.layers[selected].pixels[4*(pix)+3] = this.modImgs[this.history].pixels[4*(pix)+3];
+// 					this.layers[selected].pixels[4*(pix)] = this.modImgs[this.history].pixels[4*(pix)];
+// 					this.layers[selected].pixels[4*(pix)+1] = this.modImgs[this.history].pixels[4*(pix)+1];
+// 					this.layers[selected].pixels[4*(pix)+2] = this.modImgs[this.history].pixels[4*(pix)+2];
+// 					this.layers[selected].pixels[4*(pix)+3] = this.modImgs[this.history].pixels[4*(pix)+3];
 				}
 			}
-			this.layers[selected].updatePixels();
+// 			this.layers[selected].updatePixels();
+			if (anySelect){
+				this.updateLayer(selected);
+			}
 		}
 	}
 	
 	selectToCol(col,select){
+		this.modifyImage();
 		if (this.history===this.modImgs.length-1){
 			this.modImgs.push(createImage(this.w,this.h));
 			this.history += 1;
@@ -495,8 +575,26 @@ class img {
 		selected = this.selectNum-1;
 	}
 	
+	revertAreaToOriginal(select){
+		this.modifyImage();
+		if (this.history===this.modImgs.length-1){
+			this.modImgs.push(createImage(this.w,this.h));
+			this.history += 1;
+			this.modImgs[this.history].copy(this.modImgs[this.history-1], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+		}
+		this.modImgs[this.history].loadPixels();
+		this.IMG.loadPixels();
+		for (var pix=0; pix<this.px.length; pix+=1){
+			if (this.pxLayer[pix]===select){
+				this.colourPix(this.modImgs[this.history],pix,[this.IMG.pixels[4*pix],this.IMG.pixels[4*pix+1],this.IMG.pixels[4*pix+2],this.IMG.pixels[4*pix+3]]);
+			}
+		}
+		this.modImgs[this.history].updatePixels();
+		selected = this.selectNum-1;
+	}
+	
 	clearLayer(layer){
-		this.layers[layer].copy(this.modImgs[this.history], 0, 0, this.w, this.h, 0, 0, this.w, this.h);
+		this.layers[layer] = [];
 		for (var pix=0; pix<this.px.length; pix+=1){
 			if (this.pxLayer[pix]===layer){
 				this.pxLayer[pix] = 0;
@@ -699,11 +797,11 @@ function toolBar(){
 }
 
 function draw(){
-	if (activity){
+// 	if (activity){
 		cursorType = 'default';
 		updateScreen();
 		img1.imageRun();
-	}
+// 	}
 	activity = false;
 	cursor(cursorType);
 }
@@ -743,6 +841,10 @@ function mouseClicked(){
 				}
 			}
 		}
+	} else if (tool === 'Revert Area'){
+		if (img1.imageHover()){
+			img1.revertAreaToOriginal(selected);
+		}
 	}
 
 	if (hoverLayer>=0){
@@ -752,14 +854,10 @@ function mouseClicked(){
 		}
 		if (hoverLayer<img1.selectNum-1){
 			img1.updateLayer(selected);
-			if (activeSelection!==selected){
-				img1.updateLayer(activeSelection);
-			}
 		}
 	}
 	if (dist(mouseX,mouseY,W-sidebarWidthRHS/2,H-60)<20 && img1.selectNum<=10){
-		img1.layers.push(createImage(img1.w,img1.h));
-		img1.layers[img1.selectNum-1].copy(img1.modImgs[img1.history], 0, 0, img1.w, img1.h, 0, 0, img1.w, img1.h);
+		img1.layers.push([]);
 		img1.selectNum += 1;
 		selected = img1.selectNum-2;
 		activeSelection = img1.selectNum-2;
