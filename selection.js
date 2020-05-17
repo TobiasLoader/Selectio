@@ -34,6 +34,7 @@ function preload() {
 
 function setup() {
 	angleMode(DEGREES);
+	imageMode(CENTER);
 	W = window.innerWidth;
 	H = window.innerHeight;
 	canvas = createCanvas(W, H);
@@ -53,7 +54,7 @@ function setup() {
 	
 	fillCol = [255,0,0];
 	
-	img1 = initImg(tom,W/10,H/10,2*W/3,3*H/5);
+	img1 = initImg(tom,W/2,H/2,5*W/10,7*H/10);
 	
 	background(25);	
 	img1.drawMod();
@@ -175,7 +176,7 @@ function determineAreaStroke(layer){
 	if (colAreaMethod===1){
 		colHSB = selectionHue[(layer-1)%selectionHue.length];
 		timeSec = millis()/1000;
-		if (int(timeSec)%4){
+		if ((int(timeSec)%4)%2){
 			colRGB = HSB2RGB([colHSB[0],colHSB[1]*2*abs(0.5-(timeSec-int(timeSec))),colHSB[2]]);
 		} else {
 			colRGB = HSB2RGB([colHSB[0],colHSB[1],colHSB[2]*2*abs(0.5-(timeSec-int(timeSec)))]);
@@ -292,7 +293,7 @@ class img {
 					determineAreaStroke(layer);
 					stroke(colRGB[0],colRGB[1],colRGB[2]);
 					for (var pix=0; pix<this.layers[layer].length; pix+=1){
-						point(this.x+this.layers[layer][pix]%this.w,this.y+int(this.layers[layer][pix]/this.w));
+						point(this.x-this.w/2+this.layers[layer][pix]%this.w,this.y-this.h/2+int(this.layers[layer][pix]/this.w));
 					}
 				}
 				stroke(selectionCols[layer-1][0],selectionCols[layer-1][1],selectionCols[layer-1][2],100);
@@ -302,7 +303,7 @@ class img {
 						determineAreaStroke(l);
 						stroke(colRGB[0],colRGB[1],colRGB[2]);
 						for (var pix=0; pix<this.layers[l].length; pix+=1){
-							point(this.x+this.layers[l][pix]%this.w,this.y+int(this.layers[l][pix]/this.w));
+							point(this.x-this.w/2+this.layers[l][pix]%this.w,this.y-this.h/2+int(this.layers[l][pix]/this.w));
 						}
 					}
 				}
@@ -319,10 +320,10 @@ class img {
 			stroke(255,255,255,100);
 		}
 		strokeWeight(1);
-		line(this.x-4,this.y-4,this.x+this.w+4,this.y-4);
-		line(this.x+this.w+4,this.y-4,this.x+this.w+4,this.y+this.h+4);
-		line(this.x+this.w+4,this.y+this.h+4,this.x-4,this.y+this.h+4);
-		line(this.x-4,this.y+this.h+4,this.x-4,this.y-4);
+		line(this.x-this.w/2-4,this.y-this.h/2-4,this.x+this.w/2+4,this.y-this.h/2-4);
+		line(this.x+this.w/2+4,this.y-this.h/2-4,this.x+this.w/2+4,this.y+this.h/2+4);
+		line(this.x+this.w/2+4,this.y+this.h/2+4,this.x-this.w/2-4,this.y+this.h/2+4);
+		line(this.x-this.w/2-4,this.y+this.h/2+4,this.x-this.w/2-4,this.y-this.h/2-4);
 	}
 	
 	colourPix(img,pix,c){
@@ -402,7 +403,7 @@ class img {
 	}
 	
 	imageHover(){
-		if (mouseX>this.x && mouseX<this.x+this.w && mouseY>this.y && mouseY<this.y+this.h){
+		if (mouseX>this.x-int(this.w/2) && mouseX<this.x+int(this.w/2) && mouseY>this.y-int(this.h/2) && mouseY<this.y+int(this.h/2)){
 			return true;
 		} else {
 			return false;
@@ -414,10 +415,14 @@ class img {
 			toolCursors();
 		}
 	}
+	
+	convertMousePosToPix(mX,mY){
+		return (mX-this.x-int(this.w/2))+(mY-this.y+int(this.h/2))*int(this.w);
+	}
 
 	newMagicWand(mX,mY) {
 		if (this.imageHover()){
-			let index = (mX-this.x)+(mY-this.y)*this.w;
+			let index = this.convertMousePosToPix(mX,mY);
 			if (this.px[index]===0){
 				if ((this.selectNum===2 || selected>this.selectNum-2) && this.selectNum<=9){
 					this.layers.push([]);
@@ -498,7 +503,7 @@ class img {
 				this.selectNum += 1;
 				activeSelection = this.selectNum-2;
 			}
-			let index = (mX-this.x)+(mY-this.y)*this.w;
+			let index = this.convertMousePosToPix(mX,mY);
 			let anySelect = false;
 			let dSquare;
 // 			this.layers[selected].loadPixels();
@@ -532,7 +537,7 @@ class img {
 	
 	newCircleDeselect(mX,mY) {
 		if (this.imageHover() && this.selectNum>1){
-			let index = (mX-this.x)+(mY-this.y)*this.w;
+			let index = this.convertMousePosToPix(mX,mY);
 			let dSquare;
 			let anySelect = false;
 			
