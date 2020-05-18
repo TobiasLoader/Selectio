@@ -65,7 +65,7 @@ function setup() {
 		'Revert Area': new tool('Revert Area', 5, {}, false)
 	};
 	
-	colAreaMethod = 2; // 1, 2, 3 or 4
+	colAreaMethod = 2; // 1, 2, 3, 4 or 5
 	
 	areaCols = [[245, 66, 66],[252, 123, 3],[245, 224, 66],[208, 240, 161],[130, 224, 130],[130, 224, 205],[78, 163, 242],[133, 130, 224],[222, 140, 186]];
 	areaHue = [];
@@ -138,25 +138,37 @@ function toolCursors(mX,mY,noneCursor){
 		rect(-3,4,4,4);
 		pop();
 	} else if (currentTool === 'Circle Select'){
+		let r;
+		if (noneCursor){
+			r = tools['Circle Select'].numOptions['Radius'];	
+		} else {
+			r = 15;
+		}
 		noFill();
 		stroke(200,200,200);
 		strokeWeight(1);
-		ellipse(mX,mY,2*tools['Circle Select'].numOptions['Radius'],2*tools['Circle Select'].numOptions['Radius']);
-		line(mX-tools['Circle Select'].numOptions['Radius']/5,mY,mX+tools['Circle Select'].numOptions['Radius']/5,mY);
-		line(mX,mY-tools['Circle Select'].numOptions['Radius']/5,mX,mY+tools['Circle Select'].numOptions['Radius']/5);
+		ellipse(mX,mY,2*r,2*r);
+		line(mX-r/5,mY,mX+r/5,mY);
+		line(mX,mY-r/5,mX,mY+r/5);
 		stroke(0,0,0,150);
-		ellipse(mX,mY,2*tools['Circle Select'].numOptions['Radius']+2,2*tools['Circle Select'].numOptions['Radius']+2);
-		line(mX-tools['Circle Select'].numOptions['Radius']/5,mY-1,mX+tools['Circle Select'].numOptions['Radius']/5,mY-1);
-		line(mX-1,mY-tools['Circle Select'].numOptions['Radius']/5,mX-1,mY+tools['Circle Select'].numOptions['Radius']/5);
+		ellipse(mX,mY,2*r+2,2*r+2);
+		line(mX-r/5,mY-1,mX+r/5,mY-1);
+		line(mX-1,mY-r/5,mX-1,mY+r/5);
 	} else if (currentTool === 'Circle Deselect'){
+		let r;
+		if (noneCursor){
+			r = tools['Circle Deselect'].numOptions['Radius'];	
+		} else {
+			r = 15;
+		}
 		noFill();
 		stroke(200,200,200);
 		strokeWeight(1);
-		ellipse(mX,mY,2*tools['Circle Deselect'].numOptions['Radius'],2*tools['Circle Deselect'].numOptions['Radius']);
-		line(mX-tools['Circle Deselect'].numOptions['Radius']/5,mY,mX+tools['Circle Deselect'].numOptions['Radius']/5,mY);
+		ellipse(mX,mY,2*r,2*r);
+		line(mX-r/5,mY,mX+r/5,mY);
 		stroke(0,0,0,150);
-		ellipse(mX,mY,2*tools['Circle Deselect'].numOptions['Radius']+2,2*tools['Circle Deselect'].numOptions['Radius']+2);
-		line(mX-tools['Circle Deselect'].numOptions['Radius']/5,mY-1,mX+tools['Circle Deselect'].numOptions['Radius']/5,mY-1);
+		ellipse(mX,mY,2*r+2,2*r+2);
+		line(mX-r/5,mY-1,mX+r/5,mY-1);
 	}  else if (currentTool === 'Colour Fill'){
 		strokeWeight(1);
 		push();
@@ -183,9 +195,9 @@ function toolCursors(mX,mY,noneCursor){
 		translate(mX-5,mY-13);
 		rotate(-30);
 		stroke(200,200,200);
-		arc(2,4,5,32,160,355);
+		arc(1,5,5,32,160,355);
 		stroke(20,20,20);
-		arc(2,4,7,36,160,355);
+		arc(1,5,7,36,160,355);
 		pop();
 	}  else if (currentTool === 'Colour Stroke'){
 		let ps = [
@@ -251,14 +263,22 @@ function determineAreaStroke(area){
 	} else if (colAreaMethod===2){
 		colHSB = areaHue[(area-1)%areaHue.length];
 		timeSec = millis()/1000;
+		if (img1.colFlash==='w'){
+			colRGB = HSB2RGB([colHSB[0],colHSB[1]*Math.pow(cos(90*(timeSec)),2),colHSB[2]]);
+		} else if (img1.colFlash==='b'){
+			colRGB = HSB2RGB([colHSB[0],colHSB[1],colHSB[2]*Math.pow(cos(90*(timeSec)),2)]);
+		}
+		colRGB.push(200);
+	}  else if (colAreaMethod===3){
+		colHSB = areaHue[(area-1)%areaHue.length];
+		timeSec = millis()/1000;
 		if (int(timeSec)%4===0 || int(timeSec)%4===1){
 			colRGB = HSB2RGB([colHSB[0],colHSB[1]*Math.pow(cos(90*(timeSec)),2),colHSB[2]]);
 		} else {
 			colRGB = HSB2RGB([colHSB[0],colHSB[1],colHSB[2]*Math.pow(cos(90*(timeSec)),2)]);
 		}
 		colRGB.push(200);
-	}
-	else if (colAreaMethod===3){
+	} else if (colAreaMethod===4){
 		if ((int(millis()/1000)%4)%2===0){
 			colRGB = areaCols[(area-1)%areaCols.length];
 		} else if (int(millis()/1000)%4===1){
@@ -267,7 +287,7 @@ function determineAreaStroke(area){
 			colRGB = [0,0,0];
 		}
 		colRGB.push(255);
-	} else if (colAreaMethod===4){
+	} else if (colAreaMethod===5){
 		colRGB = areaCols[(area-1)%areaCols.length];
 		colRGB.push(255);
 	}
@@ -298,6 +318,7 @@ class img {
 		this.areaNum = 2;
 		this.depthForGraphic;
 		this.maxDepthForGraphic=1;
+		this.colFlash;
 		this.currentPxEdge;
 		this.px = [];
 		for (var i=0; i<this.w*this.h; i+=1){this.px.push(0);}
@@ -305,6 +326,7 @@ class img {
 		for (var i=0; i<this.w*this.h; i+=1){this.pxArea.push(0);}
 		this.transparentBack = createGraphics(this.w,this.h);
 		this.buildTransparencyGrid();
+		this.colFlash = this.determineSelectBorderFlash();
 	}
 	
 /*
@@ -328,7 +350,20 @@ class img {
 		line(this.x+this.w,this.y,this.x+this.w,this.y+this.h);
 	}
 */
-
+	determineSelectBorderFlash(){
+		this.IMG.loadPixels();
+		let total = 0;
+		for (var i=0; 4*i<this.IMG.pixels.length; i+=1){
+			total += this.IMG.pixels[4*i] + this.IMG.pixels[4*i+1] + this.IMG.pixels[4*i+2];
+		}
+		let result = total/(3/4 * this.IMG.pixels.length);
+		if (result>255/2){
+			return 'b';
+		} else {
+			return 'w';
+		}
+	}
+	
 	buildTransparencyGrid(){
 		this.transparentBack.noStroke();
 		let nY = 15;
