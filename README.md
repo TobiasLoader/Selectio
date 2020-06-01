@@ -1,2 +1,2 @@
-# MagicWand
+# Selectio
 Selection of pixels
