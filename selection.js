@@ -36,7 +36,7 @@ let themeColours;
 
 let tom;
 function preload() {
-  tom = loadImage('Tom.jpg');
+  tom = loadImage('Tom.JPG');
 }
 
 function setup() {
