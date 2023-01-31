@@ -6,7 +6,7 @@ https://tobiasloader.github.io/Selectio/index.html
 
 The new idea is that we build a map of ``Selection Areas`` – layer by layer – on top of the image. Selecting regions of pixels is a subtractive process, since Selectio ensures all ``Areas`` are mutually exclusive.
 
-![Selectio](https://github.com/TobiasLoader/Selectioe/blob/master/Selectio.png)
+![Selectio](https://github.com/TobiasLoader/Selectio/blob/master/Selectio.png)
 
 So for example given a region of pixels ``P`` in ``Area 1``, those pixels cannot be exist in any other ``Area N``. ``Area 0`` is the base layer, with the set of selected pixels being the empty set (no selection). All other layers are built inductively on top of this. The benefit with the design is we can then target ``P`` directly with our editing tools and guarantee independence from edits on any other area.
 
